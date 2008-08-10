@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 print """
-  wordwars - Copyright (C) 2008 Thomas Hirsch
+  to fight for words - Copyright (C) 2008 Thomas Hirsch
   This program comes with ABSOLUTELY NO WARRANTY;
   This is free software, and you are welcome to redistribute it under the
   conditions of the GNU General Public Licence version 3 (GPLv3)
@@ -24,6 +24,8 @@ words = []
 vowels = ['a','e','i','o','u']
 consonants = ['b','c','d','f','g','h','j','k','l','m','n','p','q','r','s','t','v','w','x','y','z']
 
+FIELD_SIZE = 15
+
 ### IMPORTS ###########################################################
 
 import sys
@@ -41,6 +43,8 @@ wordlist = bz2.BZ2File(DATAPATH + "words/" + WORDLIST, "r")
 for line in wordlist:
   words.append(line.rstrip().lower())
 words.sort()
+
+word = "" # the word being typed currently
 
 ### INIT GAME FIELD ###################################################
 
@@ -72,19 +76,21 @@ class Field:
     self.status   = STATUS_NONE
 
 field = []
-for i in range(0,15):
+for i in range(FIELD_SIZE):
   field.append([])
-  for j in range(0,15):
+  for j in range(FIELD_SIZE):
     field[i].append(Field())
 
+def randomChar():
+  if randint(0,1)==0:
+    return choice(vowels)
+  else:
+    return choice(consonants)
+
 def randomize():
-  for i in range(0,15):
-    for j in range(0,15):
-      if randint(0,1)==0:
-        char = choice(vowels)
-      else:
-        char = choice(consonants)
-      field[i][j].letter=char
+  for i in range(FIELD_SIZE):
+    for j in range(FIELD_SIZE):
+      field[i][j].letter=randomChar()
 
 randomize()
 
@@ -97,8 +103,8 @@ font = loader.loadFont(DATAPATH+"fonts/mainfram.ttf")
 
 ### PLACE LETTERS #####################################################
 
-for i in range(0,15):
-  for j in range(0,15):
+for i in range(FIELD_SIZE):
+  for j in range(FIELD_SIZE):
     letter = TextNode('_')
     letter.setText(field[i][j].letter)
     letter.setFont(font)
@@ -106,7 +112,7 @@ for i in range(0,15):
     letter.setAlign(TextNode.ACenter)
     textNodePath = render.attachNewNode(letter)
     textNodePath.setScale(1.5,1.5,1.5)
-    textNodePath.setPos(-.1 - 15 + i*2 , 75, -.5 - 15 + j*2)
+    textNodePath.setPos(-.1 - FIELD_SIZE + i*2 , 75, -.5 - FIELD_SIZE + j*2)
     field[i][j].textnode=letter
 
 ### place LIGHTS ######################################################
@@ -169,7 +175,7 @@ def setOwner(i,j,owner):
     tileRed.instanceTo(nutile)
   elif owner==2:
     tileBlue.instanceTo(nutile)
-  nutile.setPos(-15 + 2*i, 76, -15 + 2*j)
+  nutile.setPos(-FIELD_SIZE + 2*i, 76, -FIELD_SIZE + 2*j)
   f.tile=nutile
 
 def setBuildLevel(i,j,level):
@@ -188,15 +194,17 @@ def setBuildLevel(i,j,level):
     tower.instanceTo(nutile)
   elif level==FIELD_CASTLE:
     castle.instanceTo(nutile)
-  nutile.setPos(-15 + 2*i, 76, -15 + 2*j)
+  nutile.setPos(-FIELD_SIZE + 2*i, 76, -FIELD_SIZE + 2*j)
   f.feature=nutile
 
 ### INIT GAME FIELD ##################################################
 
-for i in range(0,15):
-  for j in range(0,15):
+CURRENT_PLAYER = 1
+
+for i in range(FIELD_SIZE):
+  for j in range(FIELD_SIZE):
     tile = render.attachNewNode("t"+str(i)+str(j))
-    tile.setPos(-15 + 2*i, 76, -15 + 2*j)
+    tile.setPos(-FIELD_SIZE + 2*i, 76, -FIELD_SIZE + 2*j)
     tileGrass.instanceTo(tile)    
     field[i][j].tile = tile
 
@@ -206,19 +214,15 @@ setOwner(4,3,1)
 setOwner(3,2,1)
 setOwner(3,4,1)
 
-setOwner(10,11,2)
-setOwner(11,11,2)
-setOwner(12,11,2)
-setOwner(11,10,2)
-setOwner(11,12,2)
+k = FIELD_SIZE - 4
+setOwner(k-1,k,2)
+setOwner(k,k,2)
+setOwner(k+1,k,2)
+setOwner(k,k-1,2)
+setOwner(k,k+1,2)
 
 setBuildLevel(3,3,FIELD_CASTLE)
-setBuildLevel(11,11,FIELD_CASTLE)
-
-setBuildLevel(1,1,FIELD_TENT)
-setBuildLevel(1,2,FIELD_FORT)
-setBuildLevel(1,3,FIELD_TOWER)
-setBuildLevel(1,4,FIELD_CASTLE)
+setBuildLevel(k,k,FIELD_CASTLE)
 
 ### place CAMERA ######################################################
 #default camera
@@ -235,22 +239,99 @@ setCamera(cameraAngle) # why would this not work at all?
 ### SET UP Keyboard control ##########################################
 
 def gotKeypress(letter):
-  for i in field:
-    for tile in i:
+  global word
+
+  letterFound = False
+  for i in range(FIELD_SIZE):
+    for j in range(FIELD_SIZE):
+      tile = field[i][j]
       if tile.letter==letter:
-        print "ok, this letter exists."
-        #if field is marked or better, ignore
-        #now check if word is empty (first letter to type)
-        #  then if neighbour is an owned space
-        #    then make space STATUS_END. highlight letter in colour of player (red|blue)
-        #or if neighbour is a STATUS_END space
-        #  then set space STATUS_2MARK. in next iteration move all STATUS_END -> STATUS_MARKED and STATUS_2MARK -> STATUS_END
+        if tile.status == STATUS_NONE and (tile.owner == 0 or tile.owner == CURRENT_PLAYER):
+          if len(word) == 0:
+            neighbourOwned = False
+            for k in range(i-1,i+2):
+              for l in range(j-1,j+2):
+                if (k>-1) and (l>-1): #lists wrap around at index < 0
+                  try: 
+                    if field[k][l].owner == CURRENT_PLAYER:
+                      neighbourOwned = True
+                  except:
+                    pass
+            if neighbourOwned:
+              tile.status = STATUS_2MARK
+              tile.textnode.setTextColor(1,0,0,1) # or 1,0,0,1? - adapt for P2
+              letterFound = True
+          else:
+            neighbourEnd = False
+            for k in range(i-1,i+2):
+              for l in range(j-1,j+2):
+                if (k>-1) and (l>-1): #lists wrap around at index < 0
+                  try: 
+                    if field[k][l].status == STATUS_END:
+                      neighbourEnd = True
+                  except:
+                    pass
+            if neighbourEnd:
+              tile.status = STATUS_2MARK
+              tile.textnode.setTextColor(1,0,0,1) #adapt for P2
+              letterFound = True
+  if letterFound:
+    word += letter
+    for i in range(FIELD_SIZE):
+      for j in range(FIELD_SIZE):
+        tile = field[i][j]
+        if tile.status == STATUS_END:
+          neighbour2mark = False
+          for k in range(i-1,i+2):
+            for l in range(j-1,j+2):
+              if (k>-1) and (l>-1): #lists wrap around at index < 0
+                try: 
+                  if field[k][l].status == STATUS_2MARK:
+                    neighbour2mark = True
+                except:
+                  pass
+          if neighbour2mark:
+            tile.status = STATUS_MARKED
+          else:
+            tile.status = STATUS_NONE
+            tile.textnode.setTextColor(1,1,1,1)
+    for line in field:
+      for tile in line:
+        if tile.status == STATUS_2MARK:
+          tile.status = STATUS_END
+  print "new word: "+word
+
+def unmarkField():
+  "remove all marks and color highlights."
+  global word 
+
+  word = ""
+  for line in field:
+    for tile in line:
+      tile.status = STATUS_NONE
+      tile.textnode.setTextColor(1,1,1,1)  
 
 def sendWord():
-  print "sendWord"	
-  #check if word is in words
-  #then (do building and erasing action; send word to partner)
-  #else unmark all spaces
+  global CURRENT_PLAYER
+
+  print "sendWord"
+  if word in words:
+    print "IT'S A WORD!"
+    for i in range(FIELD_SIZE):
+      for j in range(FIELD_SIZE):
+        tile = field[i][j]
+        if tile.status > STATUS_NONE:
+          setOwner(i,j,CURRENT_PLAYER)
+          tile.letter = randomChar()
+          tile.textnode.setText(tile.letter)
+   
+    #then (do building and erasing action; send word to partner)
+    CURRENT_PLAYER = 3-CURRENT_PLAYER # toggle 1|2
+  unmarkField()
+
+def undoLetter():
+  print "undoLetter"	
+  unmarkField()
 
 base.accept('escape', sys.exit )             #exit on esc
 for i in vowels:
@@ -258,6 +339,7 @@ for i in vowels:
 for i in consonants:
   base.accept(i, gotKeypress, [i])
 base.accept('enter', sendWord)
+base.accept('backspace', undoLetter)
 
 ### SET UP Mouse control #############################################
 #base.disableMouse()
