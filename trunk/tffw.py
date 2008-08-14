@@ -23,6 +23,43 @@ print ""
 words = []
 vowels = ['a','e','i','o','u']
 consonants = ['b','c','d','f','g','h','j','k','l','m','n','p','q','r','s','t','v','w','x','y','z']
+letters = {
+  'a':0.0651,
+  'b':0.0189,
+  'c':0.0306,
+  'd':0.0508,
+  'e':0.1740,
+  'f':0.0166,
+  'g':0.0301,
+  'h':0.0476,
+  'i':0.0755,
+  'j':0.0027,
+  'k':0.0121,
+  'l':0.0344,
+  'm':0.0253,
+  'n':0.0978,
+  'o':0.0251,
+  'p':0.0079,
+  'q':0.0002,
+  'r':0.0700,
+  's':0.0758,
+  't':0.0615,
+  'u':0.0435,
+  'v':0.0067,
+  'w':0.0189,
+  'x':0.0003,
+  'y':0.0004,
+  'z':0.0113,
+}
+
+def weightedChoice(dic):
+  select = random()
+  total = 0.0
+  for letter, prob in dic.iteritems():
+    total += prob
+    if select < total:
+      return letter
+  return None
 
 FIELD_SIZE = 15
 
@@ -82,10 +119,7 @@ for i in range(FIELD_SIZE):
     field[i].append(Field())
 
 def randomChar():
-  if randint(0,1)==0:
-    return choice(vowels)
-  else:
-    return choice(consonants)
+  return weightedChoice(letters)
 
 def randomize():
   for i in range(FIELD_SIZE):
