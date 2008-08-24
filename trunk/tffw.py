@@ -21,8 +21,6 @@ print "  You are using software revision "+SOFTWARE_VERSION
 print ""
 
 words = []
-vowels = ['a','e','i','o','u']
-consonants = ['b','c','d','f','g','h','j','k','l','m','n','p','q','r','s','t','v','w','x','y','z']
 letters = {
   'a':0.0651,
   'b':0.0189,
@@ -344,9 +342,7 @@ def undoLetter():
   unmarkField()
 
 base.accept('escape', sys.exit )             #exit on esc
-for i in vowels:
-  base.accept(i, gotKeypress, [i])
-for i in consonants:
+for i in letters.keys():
   base.accept(i, gotKeypress, [i])
 base.accept('enter', sendWord)
 base.accept('backspace', undoLetter)
