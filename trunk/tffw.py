@@ -12,7 +12,7 @@ import os
 
 SEPARATOR = os.path.normpath('/');              # find out what a SEPARATOR looks like on this os
 DATAPATH = "." + SEPARATOR + "data" + SEPARATOR # where to find data files (.x models)
-WORDLIST = "wordlist.de.bz2"
+WORDLIST = "ngerman.bz2"
 
 SOFTWARE_VERSION = "svn"+'$Revision: 1 $'[11:-2] # automatically set by subversion on checkout
 
@@ -82,6 +82,7 @@ for line in wordlist:
 words.sort()
 
 word = "" # the word being typed currently
+paths = []
 
 ### INIT GAME FIELD ###################################################
 
@@ -90,11 +91,6 @@ FIELD_TENT   = 1
 FIELD_FORT   = 2 
 FIELD_TOWER  = 3 
 FIELD_CASTLE = 4  
-
-STATUS_NONE   = 0
-STATUS_MARKED = 1
-STATUS_2MARK  = 2
-STATUS_END    = 3
 
 class Field:
   #letter   (char)
@@ -110,7 +106,6 @@ class Field:
     self.letter   = None
     self.tile     = None
     self.textnode = None
-    self.status   = STATUS_NONE
 
 field = []
 for i in range(FIELD_SIZE):
@@ -273,14 +268,15 @@ setCamera(cameraAngle) # why would this not work at all?
 ### SET UP Keyboard control ##########################################
 
 def gotKeypress(letter):
-  global word
+  global word, paths
 
   letterFound = False
+  newpaths = []
   for i in range(FIELD_SIZE):
     for j in range(FIELD_SIZE):
       tile = field[i][j]
       if tile.letter==letter:
-        if tile.status == STATUS_NONE and (tile.owner == 0 or tile.owner == CURRENT_PLAYER):
+        if tile.owner == 0 or tile.owner == CURRENT_PLAYER:
           if len(word) == 0:
             neighbourOwned = False
             for k in range(i-1,i+2):
@@ -292,57 +288,36 @@ def gotKeypress(letter):
                   except:
                     pass
             if neighbourOwned:
-              tile.status = STATUS_2MARK
-              tile.textnode.setTextColor(1,0,0,1) # or 1,0,0,1? - adapt for P2
+              newpaths.append([(i,j)]) #a new list containing one coordinate pair
               letterFound = True
           else:
-            neighbourEnd = False
-            for k in range(i-1,i+2):
-              for l in range(j-1,j+2):
-                if (k>-1) and (l>-1): #lists wrap around at index < 0
-                  try: 
-                    if field[k][l].status == STATUS_END:
-                      neighbourEnd = True
-                  except:
-                    pass
-            if neighbourEnd:
-              tile.status = STATUS_2MARK
-              tile.textnode.setTextColor(1,0,0,1) #adapt for P2
-              letterFound = True
+            for path in paths:
+              if (i,j) in path:
+                continue
+              endi,endj = path[-1]
+              if abs(i-endi)<2 and abs(j-endj)<2:
+                newpaths.append(path + [(i,j)])
+                letterFound = True
   if letterFound:
     word += letter
+    paths = newpaths
     for i in range(FIELD_SIZE):
       for j in range(FIELD_SIZE):
         tile = field[i][j]
-        if tile.status == STATUS_END:
-          neighbour2mark = False
-          for k in range(i-1,i+2):
-            for l in range(j-1,j+2):
-              if (k>-1) and (l>-1): #lists wrap around at index < 0
-                try: 
-                  if field[k][l].status == STATUS_2MARK:
-                    neighbour2mark = True
-                except:
-                  pass
-          if neighbour2mark:
-            tile.status = STATUS_MARKED
-          else:
-            tile.status = STATUS_NONE
-            tile.textnode.setTextColor(1,1,1,1)
-    for line in field:
-      for tile in line:
-        if tile.status == STATUS_2MARK:
-          tile.status = STATUS_END
-  print "new word: "+word
+        tile.textnode.setTextColor(1,1,1,1)  
+        for path in paths:
+          if (i,j) in path:
+            tile.textnode.setTextColor(1,0,0,1)  
+  #print "new word: "+word
 
 def unmarkField():
   "remove all marks and color highlights."
   global word 
 
   word = ""
+  paths = []
   for line in field:
     for tile in line:
-      tile.status = STATUS_NONE
       tile.textnode.setTextColor(1,1,1,1)  
 
 def sendWord():
@@ -354,10 +329,11 @@ def sendWord():
     for i in range(FIELD_SIZE):
       for j in range(FIELD_SIZE):
         tile = field[i][j]
-        if tile.status > STATUS_NONE:
-          setOwner(i,j,CURRENT_PLAYER)
-          tile.letter = randomChar()
-          tile.textnode.setText(tile.letter)
+        for path in paths:
+          if (i,j) in path:
+            setOwner(i,j,CURRENT_PLAYER)
+            tile.letter = randomChar()
+            tile.textnode.setText(tile.letter)
    
     #then (do building and erasing action; send word to partner)
     CURRENT_PLAYER = 3-CURRENT_PLAYER # toggle 1|2
