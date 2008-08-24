@@ -14,7 +14,7 @@ SEPARATOR = os.path.normpath('/');              # find out what a SEPARATOR look
 DATAPATH = "." + SEPARATOR + "data" + SEPARATOR # where to find data files (.x models)
 WORDLIST = "ngerman.bz2"
 
-SOFTWARE_VERSION = "svn"+'$Revision: 1 $'[11:-2] # automatically set by subversion on checkout
+SOFTWARE_VERSION = "svn"+'$Revision: 1 $'[11:-2] # automatically set by subversion on checkout (if you set the properties right)
 
 print "Debug information:"
 print "  You are using software revision "+SOFTWARE_VERSION
@@ -207,6 +207,8 @@ def setOwner(i,j,owner):
 
 def setBuildLevel(i,j,level):
   f = field[i][j]
+  if level>FIELD_CASTLE:
+    level = FIELD_CASTLE
   f.level = level
   if f.feature:
     f.feature.removeNode()
@@ -223,6 +225,10 @@ def setBuildLevel(i,j,level):
     castle.instanceTo(nutile)
   nutile.setPos(-FIELD_SIZE + 2*i, 76, -FIELD_SIZE + 2*j)
   f.feature=nutile
+
+def raiseBuildLevel(i,j):
+  f = field[i][j]
+  setBuildLevel(i,j,f.level+1)
 
 ### INIT GAME FIELD ##################################################
 
@@ -270,6 +276,7 @@ def gotKeypress(letter):
 
   letterFound = False
   newpaths = []
+  print "key pressed,",
   for i in range(FIELD_SIZE):
     for j in range(FIELD_SIZE):
       tile = field[i][j]
@@ -306,7 +313,7 @@ def gotKeypress(letter):
         for path in paths:
           if (i,j) in path:
             tile.textnode.setTextColor(1,0,0,1)  
-  #print "new word: "+word
+  print "new word: "+word
 
 def unmarkField():
   "remove all marks and color highlights."
@@ -321,18 +328,41 @@ def unmarkField():
 def sendWord():
   global CURRENT_PLAYER
 
-  print "sendWord"
   if word in words:
     print "IT'S A WORD!"
     for i in range(FIELD_SIZE):
       for j in range(FIELD_SIZE):
         tile = field[i][j]
+        inPath = False
         for path in paths:
           if (i,j) in path:
+            inPath = True
+        if inPath:
+          if tile.owner==CURRENT_PLAYER:
+            raiseBuildLevel(i,j)
+          else:
             setOwner(i,j,CURRENT_PLAYER)
-            tile.letter = randomChar()
-            tile.textnode.setText(tile.letter)
-   
+          tile.letter = randomChar()
+          tile.textnode.setText(tile.letter)
+    for i in range(FIELD_SIZE):
+      for j in range(FIELD_SIZE):
+        tile = field[i][j]
+        for k in range(i-1,i+2):
+          for l in range(j-1,j+2):
+            if (k>-1) and (l>-1) and (i==k or j==l): #lists wrap around at index < 0
+              try:
+                tile2 = field[k][l]
+                if tile.owner == 1 and tile2.owner==2:
+                  minlevel = min(tile.level, tile2.level) 
+                  setBuildLevel(i,j,tile.level-minlevel)
+                  setBuildLevel(k,l,tile2.level-minlevel)
+                  if tile.level == 0:
+                    setOwner(i,j,0)
+                  if tile2.level == 0:
+                    setOwner(k,l,0)
+              except:
+                pass
+        
     #then (do building and erasing action; send word to partner)
     CURRENT_PLAYER = 3-CURRENT_PLAYER # toggle 1|2
   unmarkField()
