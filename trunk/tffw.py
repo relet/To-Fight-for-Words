@@ -60,6 +60,7 @@ def weightedChoice(dic):
   return None
 
 FIELD_SIZE = 15
+CAMERA_HEIGHT = 60
 
 ### IMPORTS ###########################################################
 
@@ -136,20 +137,22 @@ for i in range(FIELD_SIZE):
     letter.setText(field[i][j].letter)
     letter.setFont(font)
     letter.setTextColor(1,1,1,1)
+#    letter.setShadow(.1,.1)
+#    letter.setShadowColor(0,.4,0,1)
     letter.setAlign(TextNode.ACenter)
     textNodePath = render.attachNewNode(letter)
-    textNodePath.setScale(1.5,1.5,1.5)
-    textNodePath.setPos(-.1 - FIELD_SIZE + i*2 , 74, -.5 - FIELD_SIZE + j*2)
+    textNodePath.setScale(1.4,1.4,1.4)
+    textNodePath.setPos(-.2 - FIELD_SIZE + i*2 , CAMERA_HEIGHT, -.4 - FIELD_SIZE + j*2)
     field[i][j].textnode=letter
 
 ### place LIGHTS ######################################################
 #default: no shading, full colours
 
 #not directional, but a lit ball somewhere above the stage
-#sun  = PointLight('sun')
-#sunp = render.attachNewNode(sun)
-#sunp.setPos(20,25,10)
-#render.setLight(sunp)
+sun  = PointLight('sun')
+sunp = render.attachNewNode(sun)
+sunp.setPos(0,50,FIELD_SIZE*2)
+render.setLight(sunp)
 
 ### LOAD and place MODELS #############################################
 
@@ -162,9 +165,9 @@ tileModel.instanceTo(tileRed)
 tileModel.instanceTo(tileBlue)
   
 castle  = loader.loadModel(DATAPATH+"models/castle.x")
-tower   = loader.loadModel(DATAPATH+"models/tower.x")
+tower   = loader.loadModel(DATAPATH+"models/towers.x")
 fort    = loader.loadModel(DATAPATH+"models/fort.x")
-tent    = loader.loadModel(DATAPATH+"models/tent.x")
+tent    = loader.loadModel(DATAPATH+"models/bags.x")
 
 castle.setScale(1.5,1.5,1.5)
 fort.setScale(1.5,1.5,1.5)
@@ -185,7 +188,7 @@ tileRed.setTexture(texRed)
 tileBlue.setTexture(texBlue)
 castle.setTexture(texCastle)
 tent.setTexture(texTent)
-fort.setTexture(texCastle)  # how very resourceful!
+fort.setTexture(texTent)  # how very resourceful!
 tower.setTexture(texCastle) # how very resourceful!
 
 ### TILE PLACEMENT HELPER FUNCTIONS###################################
@@ -202,7 +205,7 @@ def setOwner(i,j,owner):
     tileRed.instanceTo(nutile)
   elif owner==2:
     tileBlue.instanceTo(nutile)
-  nutile.setPos(-FIELD_SIZE + 2*i, 76, -FIELD_SIZE + 2*j)
+  nutile.setPos(-FIELD_SIZE + 2*i, CAMERA_HEIGHT+.4, -FIELD_SIZE + 2*j)
   f.tile=nutile
 
 def setBuildLevel(i,j,level):
@@ -225,7 +228,7 @@ def setBuildLevel(i,j,level):
     tower.instanceTo(nutile)
   elif level==FIELD_CASTLE:
     castle.instanceTo(nutile)
-  nutile.setPos(-FIELD_SIZE + 2*i, 76, -FIELD_SIZE + 2*j)
+  nutile.setPos(-FIELD_SIZE + 2*i, CAMERA_HEIGHT+.4, -FIELD_SIZE + 2*j)
   f.feature=nutile
 
 def raiseBuildLevel(i,j):
@@ -242,7 +245,7 @@ CURRENT_PLAYER = 1
 for i in range(FIELD_SIZE):
   for j in range(FIELD_SIZE):
     tile = render.attachNewNode("t"+str(i)+str(j))
-    tile.setPos(-FIELD_SIZE + 2*i, 76, -FIELD_SIZE + 2*j)
+    tile.setPos(-FIELD_SIZE + 2*i, CAMERA_HEIGHT+.4, -FIELD_SIZE + 2*j)
     tileGrass.instanceTo(tile)    
     field[i][j].tile = tile
 
@@ -334,6 +337,7 @@ def sendWord():
   global CURRENT_PLAYER
 
   if word in words:
+    #send word to partner, here
     print "IT'S A WORD!"
     for i in range(FIELD_SIZE):
       for j in range(FIELD_SIZE):
@@ -366,9 +370,19 @@ def sendWord():
                   lowerBuildLevel(k,l)
               except:
                 pass
-        
-    #then (do building and erasing action; send word to partner)
     CURRENT_PLAYER = 3-CURRENT_PLAYER # toggle 1|2
+    player1wins = True
+    player2wins = True
+    for line in field:
+      for tile in line:
+        if tile.level == FIELD_CASTLE:
+          if tile.owner == 1:
+            player2wins = False
+          elif tile.owner == 2:
+            player1wins = False
+    if player1wins or player2wins:
+      print "Game over. Congratulations."
+      sys.exit()
   unmarkField()
 
 def undoLetter():
