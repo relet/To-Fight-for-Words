@@ -139,7 +139,7 @@ for i in range(FIELD_SIZE):
     letter.setAlign(TextNode.ACenter)
     textNodePath = render.attachNewNode(letter)
     textNodePath.setScale(1.5,1.5,1.5)
-    textNodePath.setPos(-.1 - FIELD_SIZE + i*2 , 75, -.5 - FIELD_SIZE + j*2)
+    textNodePath.setPos(-.1 - FIELD_SIZE + i*2 , 74, -.5 - FIELD_SIZE + j*2)
     field[i][j].textnode=letter
 
 ### place LIGHTS ######################################################
@@ -209,6 +209,8 @@ def setBuildLevel(i,j,level):
   f = field[i][j]
   if level>FIELD_CASTLE:
     level = FIELD_CASTLE
+  if level<FIELD_EMPTY:
+    level = FIELD_EMPTY
   f.level = level
   if f.feature:
     f.feature.removeNode()
@@ -229,6 +231,9 @@ def setBuildLevel(i,j,level):
 def raiseBuildLevel(i,j):
   f = field[i][j]
   setBuildLevel(i,j,f.level+1)
+def lowerBuildLevel(i,j):
+  f = field[i][j]
+  setBuildLevel(i,j,f.level-1)
 
 ### INIT GAME FIELD ##################################################
 
@@ -353,13 +358,12 @@ def sendWord():
               try:
                 tile2 = field[k][l]
                 if tile.owner == 1 and tile2.owner==2:
-                  minlevel = min(tile.level, tile2.level) 
-                  setBuildLevel(i,j,tile.level-minlevel)
-                  setBuildLevel(k,l,tile2.level-minlevel)
                   if tile.level == 0:
                     setOwner(i,j,0)
                   if tile2.level == 0:
                     setOwner(k,l,0)
+                  lowerBuildLevel(i,j)
+                  lowerBuildLevel(k,l)
               except:
                 pass
         
