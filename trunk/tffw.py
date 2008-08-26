@@ -373,15 +373,23 @@ def sendWord():
     CURRENT_PLAYER = 3-CURRENT_PLAYER # toggle 1|2
     player1wins = True
     player2wins = True
+    p1territory = 0
+    p2territory = 0
     for line in field:
       for tile in line:
-        if tile.level == FIELD_CASTLE:
-          if tile.owner == 1:
+        if tile.owner == 1:
+          if tile.level == FIELD_CASTLE:
             player2wins = False
-          elif tile.owner == 2:
+          p1territory += 1
+        elif tile.owner == 2:
+          if tile.level == FIELD_CASTLE:
             player1wins = False
-    if player1wins or player2wins:
-      print "Game over. Congratulations."
+          p1territory += 1
+    if player1wins or p1territory>(FIELD_SIZE*FIELD_SIZE/2):
+      print "Player 1 wins. Congratulations."
+      sys.exit()
+    if player2wins or p2territory>(FIELD_SIZE*FIELD_SIZE/2):
+      print "Player 2 wins. Congratulations."
       sys.exit()
   unmarkField()
 
