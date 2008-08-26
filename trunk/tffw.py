@@ -60,7 +60,8 @@ def weightedChoice(dic):
   return None
 
 FIELD_SIZE = 15
-CAMERA_HEIGHT = 60
+CAMERA_HEIGHT = 62
+TERRITORY_LIMIT=FIELD_SIZE*FIELD_SIZE/4
 
 ### IMPORTS ###########################################################
 
@@ -137,13 +138,22 @@ for i in range(FIELD_SIZE):
     letter.setText(field[i][j].letter)
     letter.setFont(font)
     letter.setTextColor(1,1,1,1)
-#    letter.setShadow(.1,.1)
-#    letter.setShadowColor(0,.4,0,1)
     letter.setAlign(TextNode.ACenter)
     textNodePath = render.attachNewNode(letter)
     textNodePath.setScale(1.4,1.4,1.4)
     textNodePath.setPos(-.2 - FIELD_SIZE + i*2 , CAMERA_HEIGHT, -.4 - FIELD_SIZE + j*2)
     field[i][j].textnode=letter
+
+### PLACE SCOREBOARD ##################################################
+score = TextNode("score")
+score.setText("T: 5  C: 1 - "+str(TERRITORY_LIMIT)+" - T: 5  C: 1")
+score.setFont(font)
+score.setTextColor(0,0,0,1)
+score.setAlign(TextNode.ACenter)
+textNodePath = render.attachNewNode(score)
+textNodePath.setScale(2,2,2)
+textNodePath.setPos(0, CAMERA_HEIGHT, FIELD_SIZE-.5)
+
 
 ### place LIGHTS ######################################################
 #default: no shading, full colours
@@ -371,24 +381,25 @@ def sendWord():
               except:
                 pass
     CURRENT_PLAYER = 3-CURRENT_PLAYER # toggle 1|2
-    player1wins = True
-    player2wins = True
+    p1castles = 0
+    p2castles = 0
     p1territory = 0
     p2territory = 0
     for line in field:
       for tile in line:
         if tile.owner == 1:
           if tile.level == FIELD_CASTLE:
-            player2wins = False
+            p1castles += 1
           p1territory += 1
         elif tile.owner == 2:
           if tile.level == FIELD_CASTLE:
-            player1wins = False
-          p1territory += 1
-    if player1wins or p1territory>(FIELD_SIZE*FIELD_SIZE/2):
+            p2castles += 1
+          p2territory += 1
+    score.setText("T: "+str(p1territory)+"  C: "+str(p1castles)+" - "+str(TERRITORY_LIMIT)+" - T: "+str(p2territory)+"  C: "+str(p2castles))
+    if p2castles == 0 or p1territory>=TERRITORY_LIMIT:
       print "Player 1 wins. Congratulations."
       sys.exit()
-    if player2wins or p2territory>(FIELD_SIZE*FIELD_SIZE/2):
+    if p1castles == 0 or p2territory>=TERRITORY_LIMIT:
       print "Player 2 wins. Congratulations."
       sys.exit()
   unmarkField()
