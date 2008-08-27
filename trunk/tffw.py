@@ -12,7 +12,7 @@ import os
 
 SEPARATOR = os.path.normpath('/');              # find out what a SEPARATOR looks like on this os
 DATAPATH = "." + SEPARATOR + "data" + SEPARATOR # where to find data files (.x models)
-WORDLIST = "ngerman.bz2"
+WORDLIST = "all.bz2"
 
 SOFTWARE_VERSION = "svn"+'$Revision: 1 $'[11:-2] # automatically set by subversion on checkout (if you set the properties right)
 
@@ -61,7 +61,7 @@ def weightedChoice(dic):
 
 FIELD_SIZE = 15
 CAMERA_HEIGHT = 62
-TERRITORY_LIMIT=FIELD_SIZE*FIELD_SIZE/4
+TERRITORY_LIMIT=FIELD_SIZE*FIELD_SIZE/3
 
 ### IMPORTS ###########################################################
 
